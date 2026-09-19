@@ -97,3 +97,19 @@ export interface UseForm2jsResult {
 - Re-submit attempts are ignored while a submit promise is still pending.
 - Validation and submit errors are both surfaced through `error` and `isError`.
 - `reset()` clears `isError`, `error`, and `isSuccess`.
+
+## Change Plans
+
+`useFormChangePlan(submit, options?)` exposes a preview-then-commit flow on top of `FormData` snapshots:
+
+```tsx
+const { createPlan, applyPlan, isSuccess } = useFormChangePlan(async (data) => {
+  await save(data);
+});
+
+const plan = createPlan(formElement, nextData); // no DOM, FormData, or state mutation
+applyPlan(plan); // validates the baseline, then calls submit once
+```
+
+- `createPlan(form, target)` reads a `FormData` snapshot and returns a plan; it never mutates the form or React state.
+- `applyPlan(plan)` refuses to run during render (`cannot-apply-during-render`), rejects stale plans with a `baselineDiff`, and invokes `submit` exactly once per plan no matter how many times the same plan is applied.

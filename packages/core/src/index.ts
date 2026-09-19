@@ -406,3 +406,24 @@ export type {
   SchemaValidator,
   ValidationOptions
 } from "./types";
+
+export {
+  CHANGE_CONFLICT_CODES,
+  applyChangePlan,
+  createChangePlan,
+  findUnsafePathSegment,
+  fingerprintValue,
+  planChanges,
+  sourceIdentityFor
+} from "./change-plan";
+
+export type {
+  ApplyChangePlanResult,
+  BaselineDifference,
+  ChangeConflictCode,
+  ChangePlan,
+  ChangePlanItem,
+  ChangePlanOperation,
+  ChangePlanSource,
+  PlanChangesOptions
+} from "./change-plan";

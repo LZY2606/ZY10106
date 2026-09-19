@@ -50,3 +50,20 @@ export type {
   SchemaValidator,
   ValidationOptions
 } from "@form2js/core";
+
+export {
+  applyFormDataChanges,
+  createFormDataChangePlanSource,
+  planFormDataChanges,
+  type FormDataChangePlanOptions
+} from "./change-plan";
+
+export type {
+  ApplyChangePlanResult,
+  BaselineDifference,
+  ChangeConflictCode,
+  ChangePlan,
+  ChangePlanItem,
+  ChangePlanOperation,
+  ChangePlanSource
+} from "@form2js/core";

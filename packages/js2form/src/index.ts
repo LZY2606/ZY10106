@@ -475,3 +475,19 @@ export function js2form(
 
 export { normalizeName };
 export type { Entry } from "@form2js/core";
+
+export {
+  applyObjectToForm,
+  planObjectToForm,
+  type ObjectToFormPlanOptions
+} from "./change-plan";
+
+export type {
+  ApplyChangePlanResult,
+  BaselineDifference,
+  ChangeConflictCode,
+  ChangePlan,
+  ChangePlanItem,
+  ChangePlanOperation,
+  ChangePlanSource
+} from "@form2js/core";

@@ -19,6 +19,7 @@
     "populate-form"
   ],
   "type": "module",
+  "sideEffects": false,
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -36,7 +37,8 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@form2js/core": "3.4.1"
+    "@form2js/core": "3.4.1",
+    "@form2js/dom": "3.4.1"
   },
   "scripts": {
     "build": "tsup --config tsup.config.ts",

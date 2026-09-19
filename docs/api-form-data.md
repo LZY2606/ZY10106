@@ -79,3 +79,17 @@ const result = formDataToObject(formData, { schema: PersonSchema });
 - Parsing rules are the same as `@form2js/core`.
 - Accepts either a real `FormData` object or any iterable of readonly key/value tuples.
 - Schema validation is optional and uses only a structural `{ parse(unknown) }` contract.
+
+## Change Plans
+
+`planFormDataChanges(formData, target, options?)` previews changes against canonicalized entries without mutating the `FormData`. `applyFormDataChanges(formData, plan)` verifies the baseline and rewrites the entries atomically, preserving `File` values. Repeated application of the same plan returns the first result and never appends duplicates.
+
+```ts
+import { applyFormDataChanges, planFormDataChanges } from "@form2js/form-data";
+
+const plan = planFormDataChanges(formData, { tags: ["witch", "crime"] });
+const result = applyFormDataChanges(formData, plan);
+```
+
+- `File` and `Blob` values are expressible; other non-scalar objects raise `F2J-C003` conflicts.
+- Applied entries are rewritten in canonical (`items[0]`) form.

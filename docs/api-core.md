@@ -113,3 +113,41 @@ const result = entriesToObject(
 - `EntryInput` accepts `[key, value]`, `{ key, value }`, and `{ name, value }`.
 - If `schema` is provided, parser output is passed to `schema.parse()` and schema errors are rethrown.
 - `objectToEntries` emits bracket indexes for arrays such as `emails[0]` and only serializes own enumerable properties.
+
+## Change Plans
+
+`@form2js/core` hosts the adapter-neutral change plan engine. A plan previews how a target object would rewrite the current state before anything is committed.
+
+```ts
+import { applyChangePlan, createChangePlan, planChanges } from "@form2js/core";
+
+const plan = planChanges(
+  { person: { name: "Esme" } },
+  { person: { name: "Tiffany" } }
+);
+// plan.items -> [{ id: "F2J-OP-0001", op: "set", path: "person.name", ... }]
+```
+
+- `planChanges(current, target, options?)` builds a plan from two object trees without any adapter.
+- `createChangePlan(source, target, options?)` builds a plan against a `ChangePlanSource` (DOM, FormData, or custom), attaching associated controls and adapter capability to every item.
+- `applyChangePlan(source, plan)` verifies the baseline fingerprint before applying. If any associated control changed since planning, the whole plan is rejected with a `baselineDiff`; partial application never happens. Applying the same plan twice returns the first result without re-running `applyItems`.
+
+### Plan Items and Semantics
+
+- Items are stably sorted by canonical path and carry sequential ids (`F2J-OP-0001`, ...).
+- `set` replaces a scalar, `append` adds array entries beyond the current length, `remove` drops truncated array entries (or pruned keys with `prune: true`), and `clear` empties a control when the target is `""` or `null`.
+- `undefined` target values are treated as missing and left untouched; keys only present in the current structure are kept unless `prune: true`.
+- File-like values compare by `name`/`size`/`lastModified` metadata; whether they are losslessly expressible depends on the adapter.
+- Paths containing `__proto__`, `prototype`, or `constructor` become `F2J-C001` conflicts and are never applied.
+
+### Conflict Codes
+
+| Code | Meaning |
+| --- | --- |
+| `F2J-C001` | Unsafe (prototype-pollution) path segment. |
+| `F2J-C002` | Current and target values disagree on container shape. |
+| `F2J-C003` | The source adapter cannot losslessly express the value. |
+| `F2J-C004` | Two target keys flatten to the same canonical path. |
+| `F2J-C005` | No control is bound to the canonical path. |
+
+Plans containing any conflict item are rejected wholesale by `applyChangePlan`.

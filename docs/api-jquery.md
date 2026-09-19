@@ -82,3 +82,14 @@ const result = $(".profile-form").toObject({ mode: "all" });
 - `installToObjectPlugin` is idempotent; it does not overwrite an existing `$.fn.toObject`.
 - `mode: "all"` returns an array of objects, one per matched element.
 - `mode: "combine"` passes all matched root nodes together into the DOM parser.
+
+## Change Plans
+
+The plugin also installs `$.fn.planChanges(target, options?)` and `$.fn.applyChanges(plan, options?)`, which delegate to the `@form2js/dom` change plan adapter. The baseline fingerprint check cannot be bypassed through the wrapper: a stale plan is rejected with a `baselineDiff` and nothing is applied.
+
+```ts
+const plan = $(".profile-form").planChanges({ person: { first: "Tiffany" } });
+const result = $(".profile-form").applyChanges(plan);
+```
+
+- `mode` follows the same `first`/`all`/`combine` rules as `toObject`; `all` returns one plan (or result) per matched element.

@@ -275,6 +275,24 @@ Standalone:
 
 - Not shipped for this package. Use module imports.
 
+### Change plans (preview before write-back)
+
+Every adapter can preview how a target object would rewrite the current state before anything is committed. A change plan lists stably sorted `set`, `append`, `remove`, `clear`, and `conflict` items with canonical paths, old/new values, adapter capability, and associated controls. Computing a plan never mutates the DOM, `FormData`, or React state.
+
+```ts
+import { applyFormChanges, planFormChanges } from "@form2js/dom";
+
+const plan = planFormChanges(form, nextData);
+if (plan.conflicts.length === 0) {
+  applyFormChanges(form, plan); // verifies the baseline fingerprint first
+}
+```
+
+- `applyFormChanges` (and the equivalent `applyObjectToForm`, `applyFormDataChanges`, `$.fn.applyChanges`, `useFormChangePlan().applyPlan`) rejects the whole plan when any associated control changed since the preview, returning a `baselineDiff`. Partial application never happens.
+- Applying the same plan twice returns the first result; arrays are not appended twice and submit callbacks fire once.
+- Conflict codes (`F2J-C001` unsafe path, `F2J-C002` shape mismatch, `F2J-C003` not expressible, `F2J-C004` duplicate path, `F2J-C005` unmapped control) are shared by every adapter.
+- The playground ships a "Preview change plan" / "Load conflict example" flow in the js2form variant.
+
 ## Legacy behavior notes
 
 Compatibility with the old project is intentional.

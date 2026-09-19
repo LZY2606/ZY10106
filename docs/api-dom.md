@@ -129,3 +129,20 @@ const result = formToObject(document.getElementById("profileForm"), {
 - You can merge multiple roots (`NodeList`, arrays, `HTMLCollection`) into one object.
 - If the callback returns `SKIP_NODE`, that node is excluded from extraction entirely.
 - If the callback returns `{ key | name, value }`, that value is used directly for that node.
+
+## Change Plans
+
+`planFormChanges(rootNode, target, options?)` previews how `target` would rewrite the form without touching the DOM. `applyFormChanges(rootNode, plan, options?)` re-checks the baseline fingerprint of every associated control and applies the whole plan atomically; if any control changed since the preview, the plan is rejected with a `baselineDiff` and nothing is written. Applying the same plan twice returns the first result.
+
+```ts
+import { applyFormChanges, planFormChanges } from "@form2js/dom";
+
+const plan = planFormChanges(form, { person: { name: { first: "Tiffany" } } });
+if (plan.conflicts.length === 0) {
+  applyFormChanges(form, plan);
+}
+```
+
+- Checkbox/radio groups and repeated field names appear in `item.controls` as `name#n` entries.
+- File inputs cannot be set programmatically, so `File` targets raise `F2J-C003` capability conflicts.
+- Disabled controls are tracked in the baseline snapshot but skipped by extraction unless `getDisabled` is set.

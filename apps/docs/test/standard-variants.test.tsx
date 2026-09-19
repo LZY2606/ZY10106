@@ -189,4 +189,85 @@ describe("standard playground variants", () => {
 
     act(() => { view.root.unmount(); });
   });
+
+  it("previews a change plan, applies it once, and surfaces conflicts", () => {
+    const view = renderVariant(Js2FormVariant);
+    const jsonInput = view.container.querySelector<HTMLTextAreaElement>('textarea[name="js2form-json"]');
+    const firstNameInput = view.container.querySelector<HTMLInputElement>('input[name="person.name.first"]');
+    const previewButton = [...view.container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Preview change plan")
+    );
+    const applyPlanButton = [...view.container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Apply previewed plan")
+    );
+    const conflictButton = [...view.container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Load conflict example")
+    );
+
+    expect(previewButton).toBeDefined();
+    expect(applyPlanButton).toBeDefined();
+    expect(conflictButton).toBeDefined();
+
+    act(() => {
+      previewButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const previewState = view.getLastOutputState();
+    expect(previewState?.kind).toBe("standard");
+    expect(previewState?.status).toBe("success");
+    const previewPayload = (previewState as { parsedPayload: { items: { op: string; path: string }[] } })
+      .parsedPayload;
+    expect(previewPayload.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ op: "set", path: "person.name.first" }),
+        expect.objectContaining({ op: "set", path: "person.name.last" })
+      ])
+    );
+    expect(firstNameInput?.value).toBe("Esme");
+
+    act(() => {
+      applyPlanButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const applyState = view.getLastOutputState() as {
+      status: string;
+      parsedPayload: { status: string; form: { person: { name: { first: string } } } };
+    };
+    expect(applyState.status).toBe("success");
+    expect(applyState.parsedPayload.status).toBe("applied");
+    expect(firstNameInput?.value).toBe("Tiffany");
+
+    act(() => {
+      conflictButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(jsonInput?.value).toContain('"__proto__"');
+
+    act(() => {
+      previewButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const conflictState = view.getLastOutputState() as {
+      status: string;
+      parsedPayload: { conflicts: { conflictCode: string; path: string }[] };
+    };
+    expect(conflictState.status).toBe("error");
+    expect(conflictState.parsedPayload.conflicts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ conflictCode: "F2J-C001", path: "__proto__.polluted" }),
+        expect.objectContaining({ conflictCode: "F2J-C005", path: "person.nickname" })
+      ])
+    );
+
+    act(() => {
+      applyPlanButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const rejectedState = view.getLastOutputState() as {
+      parsedPayload: { status: string; reason: string };
+    };
+    expect(rejectedState.parsedPayload.status).toBe("rejected");
+    expect(rejectedState.parsedPayload.reason).toBe("unresolved-conflicts");
+
+    act(() => { view.root.unmount(); });
+  });
 });

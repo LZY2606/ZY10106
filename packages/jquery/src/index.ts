@@ -1,4 +1,12 @@
-import { form2js, type FormToObjectNodeCallback, type RootNodeInput } from "@form2js/dom";
+import {
+  applyFormChanges,
+  form2js,
+  planFormChanges,
+  type ApplyChangePlanResult,
+  type ChangePlan,
+  type FormToObjectNodeCallback,
+  type RootNodeInput
+} from "@form2js/dom";
 
 export type ToObjectMode = "first" | "all" | "combine";
 
@@ -10,6 +18,14 @@ export interface ToObjectOptions {
   nodeCallback?: FormToObjectNodeCallback;
   useIdIfEmptyName?: boolean;
   getDisabled?: boolean;
+}
+
+export interface ChangePlanPluginOptions {
+  mode?: ToObjectMode;
+  delimiter?: string;
+  useIdIfEmptyName?: boolean;
+  getDisabled?: boolean;
+  prune?: boolean;
 }
 
 interface JQueryCollectionLike {
@@ -38,6 +54,21 @@ interface ResolvedToObjectOptions {
   nodeCallback?: FormToObjectNodeCallback;
   useIdIfEmptyName: boolean;
   getDisabled: boolean;
+}
+
+function collectRoots(collection: JQueryCollectionLike, mode: ToObjectMode): RootNodeInput {
+  if (mode === "first") {
+    return collection.get(0) as RootNodeInput;
+  }
+
+  const roots: Node[] = [];
+  collection.each(function eachMatched() {
+    if (isNodeObject(this)) {
+      roots.push(this);
+    }
+  });
+
+  return roots;
 }
 
 function applySettings(options?: ToObjectOptions): ResolvedToObjectOptions {
@@ -126,6 +157,57 @@ export function installToObjectPlugin($: JQueryLike): void {
           settings.allowUnsafePathSegments
         );
     }
+  };
+
+  fnObject.planChanges = function planChanges(
+    this: JQueryCollectionLike,
+    target: unknown,
+    options?: ChangePlanPluginOptions
+  ): ChangePlan | ChangePlan[] {
+    const mode = options?.mode ?? "first";
+    const planOptions = {
+      delimiter: options?.delimiter ?? ".",
+      useIdIfEmptyName: options?.useIdIfEmptyName ?? false,
+      getDisabled: options?.getDisabled ?? false,
+      prune: options?.prune ?? false
+    };
+
+    if (mode === "all") {
+      const plans: ChangePlan[] = [];
+      this.each(function eachMatched() {
+        if (isNodeObject(this)) {
+          plans.push(planFormChanges(this as RootNodeInput, target, planOptions));
+        }
+      });
+      return plans;
+    }
+
+    return planFormChanges(collectRoots(this, mode), target, planOptions);
+  };
+
+  fnObject.applyChanges = function applyChanges(
+    this: JQueryCollectionLike,
+    plan: ChangePlan,
+    options?: ChangePlanPluginOptions
+  ): ApplyChangePlanResult | ApplyChangePlanResult[] {
+    const mode = options?.mode ?? "first";
+    const planOptions = {
+      delimiter: options?.delimiter ?? ".",
+      useIdIfEmptyName: options?.useIdIfEmptyName ?? false,
+      getDisabled: options?.getDisabled ?? false
+    };
+
+    if (mode === "all") {
+      const results: ApplyChangePlanResult[] = [];
+      this.each(function eachMatched() {
+        if (isNodeObject(this)) {
+          results.push(applyFormChanges(this as RootNodeInput, plan, planOptions));
+        }
+      });
+      return results;
+    }
+
+    return applyFormChanges(collectRoots(this, mode), plan, planOptions);
   };
 }
 

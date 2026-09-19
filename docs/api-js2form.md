@@ -107,3 +107,16 @@ objectToForm(
 - Name normalization compacts sparse indexes to sequential indexes during matching.
 - For multi-select names like `colors[]`, matching includes `[]` and bare-name fallbacks without creating one map key per option.
 - Form updates set values, checked state, and selected state, but do not dispatch synthetic events.
+
+## Change Plans
+
+`planObjectToForm(rootNode, data, options?)` previews the write-back as a change plan (same engine as `@form2js/dom`), and `applyObjectToForm(rootNode, plan, options?)` commits it only when the baseline fingerprint still matches. Planning never mutates the form.
+
+```ts
+import { applyObjectToForm, planObjectToForm } from "@form2js/js2form";
+
+const plan = planObjectToForm(form, data);
+if (plan.conflicts.length === 0) {
+  applyObjectToForm(form, plan);
+}
+```
