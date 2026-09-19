@@ -101,3 +101,10 @@ export function useForm2js<TSchema extends SchemaValidator | undefined = undefin
     reset
   };
 }
+
+export { useChangePlan } from "./use-change-plan";
+export type {
+  ChangePlanRequest,
+  UseChangePlanOptions,
+  UseChangePlanResult
+} from "./use-change-plan";

@@ -1,8 +1,12 @@
-import { objectToEntries, type Entry } from "@form2js/core";
+import {
+  canonicalizeFieldName,
+  createArrayIndexesMap,
+  objectToEntries,
+  type CanonicalArrayIndexesMap,
+  type Entry
+} from "@form2js/core";
 
 const ARRAY_ITEM_REGEXP = /\[[0-9]+?\]$/;
-const LAST_INDEXED_ARRAY_REGEXP = /(.*)(\[)([0-9]*)(\])$/;
-const ARRAY_OF_ARRAYS_REGEXP = /\[([0-9]+)\]\[([0-9]+)\]/g;
 
 export type RootNodeInput = string | Node | null | undefined;
 export type ObjectToFormNodeCallback = ((node: Node) => unknown) | null | undefined;
@@ -19,49 +23,7 @@ export type SupportedField = HTMLInputElement | HTMLTextAreaElement | HTMLSelect
 export type SupportedFieldCollection = SupportedField | SupportedField[];
 export type FieldMap = Record<string, SupportedFieldCollection>;
 
-type ArrayIndexesMap = Record<
-  string,
-  {
-    lastIndex: number;
-    indexes: Record<string, number>;
-    emptyIndexGroup?: {
-      index: number;
-      seenSuffixes: Set<string>;
-    };
-  }
->;
-
-interface BracketMatch {
-  content: string;
-  index: number;
-  text: string;
-}
-
-function findBracketMatches(input: string): BracketMatch[] {
-  const matches: BracketMatch[] = [];
-  let cursor = 0;
-
-  while (cursor < input.length) {
-    const startIndex = input.indexOf("[", cursor);
-    if (startIndex === -1) {
-      break;
-    }
-
-    const endIndex = input.indexOf("]", startIndex + 1);
-    if (endIndex === -1) {
-      break;
-    }
-
-    matches.push({
-      content: input.slice(startIndex + 1, endIndex),
-      index: startIndex,
-      text: input.slice(startIndex, endIndex + 1)
-    });
-    cursor = endIndex + 1;
-  }
-
-  return matches;
-}
+type ArrayIndexesMap = CanonicalArrayIndexesMap;
 
 function isNodeObject(value: unknown): value is Node {
   return typeof value === "object" && value !== null && "nodeType" in value && "nodeName" in value;
@@ -125,115 +87,7 @@ function shouldSkipNodeAssignment(node: Node, nodeCallback: ObjectToFormNodeCall
 }
 
 function normalizeName(name: string, delimiter: string, arrayIndexes: ArrayIndexesMap): string {
-  let nameToNormalize = name;
-  const rawChunks = name.split(delimiter);
-  const normalizedRawChunks: string[] = [];
-
-  for (const rawChunk of rawChunks) {
-    const bracketMatches = findBracketMatches(rawChunk);
-    if (bracketMatches.length === 0) {
-      normalizedRawChunks.push(rawChunk);
-      continue;
-    }
-
-    let currentChunk = "";
-    let cursor = 0;
-
-    for (const match of bracketMatches) {
-      const literalText = rawChunk.slice(cursor, match.index ?? cursor);
-      if (literalText !== "") {
-        currentChunk += literalText;
-      }
-
-      const bracketContent = match.content;
-      const isArraySegment = bracketContent === "" || /^\d+$/.test(bracketContent);
-
-      if (isArraySegment) {
-        if (currentChunk !== "" && currentChunk.endsWith("]")) {
-          normalizedRawChunks.push(currentChunk);
-          currentChunk = "";
-        }
-
-        currentChunk = `${currentChunk}[${bracketContent}]`;
-      } else {
-        if (currentChunk !== "") {
-          normalizedRawChunks.push(currentChunk);
-        }
-
-        currentChunk = bracketContent;
-      }
-
-      cursor = match.index + match.text.length;
-    }
-
-    const trailingText = rawChunk.slice(cursor);
-    if (trailingText !== "") {
-      currentChunk += trailingText;
-    }
-
-    if (currentChunk !== "") {
-      normalizedRawChunks.push(currentChunk);
-    }
-  }
-
-  if (normalizedRawChunks.length > 0) {
-    nameToNormalize = normalizedRawChunks.join(delimiter);
-  }
-
-  const normalizedNameChunks: string[] = [];
-  const chunks = nameToNormalize.replace(ARRAY_OF_ARRAYS_REGEXP, "[$1].[$2]").split(delimiter);
-
-  for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex += 1) {
-    const currentChunk = chunks[chunkIndex] ?? "";
-    normalizedNameChunks.push(currentChunk);
-
-    const nameMatches = currentChunk.match(LAST_INDEXED_ARRAY_REGEXP);
-    if (!nameMatches) {
-      continue;
-    }
-
-    let currentNormalizedName = normalizedNameChunks.join(delimiter);
-    const currentIndex = currentNormalizedName.replace(LAST_INDEXED_ARRAY_REGEXP, "$3");
-    currentNormalizedName = currentNormalizedName.replace(LAST_INDEXED_ARRAY_REGEXP, "$1");
-
-    const arrayIndexInfo = (arrayIndexes[currentNormalizedName] ??= {
-      lastIndex: -1,
-      indexes: {}
-    });
-
-    if (currentIndex === "") {
-      const remainingPath = chunks.slice(chunkIndex + 1).join(delimiter);
-      const currentGroup = arrayIndexInfo.emptyIndexGroup;
-
-      if (
-        !currentGroup ||
-        remainingPath === "" ||
-        currentGroup.seenSuffixes.has(remainingPath)
-      ) {
-        arrayIndexInfo.lastIndex += 1;
-        arrayIndexInfo.emptyIndexGroup = {
-          index: arrayIndexInfo.lastIndex,
-          seenSuffixes: new Set(remainingPath === "" ? [] : [remainingPath])
-        };
-      } else {
-        currentGroup.seenSuffixes.add(remainingPath);
-      }
-    } else if (arrayIndexInfo.indexes[currentIndex] === undefined) {
-      arrayIndexInfo.lastIndex += 1;
-      arrayIndexInfo.indexes[currentIndex] = arrayIndexInfo.lastIndex;
-    }
-
-    const newIndex =
-      currentIndex === ""
-        ? (arrayIndexInfo.emptyIndexGroup?.index ?? 0)
-        : arrayIndexInfo.indexes[currentIndex];
-    normalizedNameChunks[normalizedNameChunks.length - 1] = currentChunk.replace(
-      LAST_INDEXED_ARRAY_REGEXP,
-      `$1$2${newIndex}$4`
-    );
-  }
-
-  return normalizedNameChunks.join(delimiter).replace("].[", "][");
+  return canonicalizeFieldName(name, delimiter, arrayIndexes);
 }
 
 function mergeField(result: FieldMap, key: string, value: SupportedFieldCollection): void {
@@ -415,7 +269,7 @@ export function mapFieldsByName(
     resolvedRoot,
     options.useIdIfEmptyName ?? false,
     options.delimiter ?? ".",
-    {},
+    createArrayIndexesMap(),
     options.shouldClean ?? true
   );
 }
@@ -433,7 +287,7 @@ export function objectToForm(rootNode: RootNodeInput, data: unknown, options: Ob
     resolvedRoot,
     options.useIdIfEmptyName ?? false,
     delimiter,
-    {},
+    createArrayIndexesMap(),
     options.shouldClean ?? true
   );
 
@@ -475,3 +329,14 @@ export function js2form(
 
 export { normalizeName };
 export type { Entry } from "@form2js/core";
+
+export {
+  applyDomChangePlan as applyFormChangePlan,
+  createDomChangePlan as createFormChangePlan,
+  createDomPlanCommitter as createFormPlanCommitter,
+  previewDomChangePlan as previewFormChangePlan
+} from "@form2js/dom";
+export type {
+  DomPlanOptions as FormChangePlanOptions,
+  DomPlanRootNode as FormChangePlanRootNode
+} from "@form2js/dom";

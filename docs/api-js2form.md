@@ -107,3 +107,9 @@ objectToForm(
 - Name normalization compacts sparse indexes to sequential indexes during matching.
 - For multi-select names like `colors[]`, matching includes `[]` and bare-name fallbacks without creating one map key per option.
 - Form updates set values, checked state, and selected state, but do not dispatch synthetic events.
+
+## Change Plans
+
+This package participates in the adapter-neutral change plan workflow from `@form2js/core`. Previewing a plan never mutates the underlying DOM, FormData, or React state; applying validates a baseline fingerprint and rejects the whole plan (returning per-control diffs) when any associated control changed after preview. Conflicts use stable core ids (`C001`, ...) and cover capability, shape, disabled, missing-control, and prototype-pollution cases. See the `@form2js/core` change plan documentation for the shared semantics.
+
+Object-to-form plan entry points are re-exported from `@form2js/dom`: `createFormChangePlan` (alias `previewFormChangePlan`), `applyFormChangePlan`, and `createFormPlanCommitter`.

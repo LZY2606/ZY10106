@@ -15,11 +15,26 @@ type ToObjectOptions = {
 
 type ToObjectResult = unknown;
 
+type ChangeItemLike = { path: string };
+
+type ChangePlanLike = {
+  changes: ChangeItemLike[];
+  conflicts: unknown[];
+  status: string;
+};
+
+type PlanOutcomeLike =
+  | { status: "applied"; changes: unknown[] }
+  | { status: "rejected"; reason: string; baselineDiffs?: unknown[]; conflicts?: unknown[] };
+
 type StubCollection = {
   length: number;
   get(index: number): Element | undefined;
   each(callback: (this: Element, index: number, element: Element) => void): StubCollection;
   toObject?: (options?: ToObjectOptions) => ToObjectResult;
+  previewChangePlan?: (target: unknown, options?: unknown) => ChangePlanLike;
+  applyChangePlan?: (plan: ChangePlanLike) => PlanOutcomeLike;
+  commitChangePlan?: (target: unknown, options?: unknown) => PlanOutcomeLike;
 };
 
 type SelectorInput = string | Element | Element[];
@@ -163,5 +178,89 @@ describe("standalone entry", () => {
     await import("../src/standalone");
 
     expect(typeof $.fn.toObject).toBe("function");
+  });
+});
+
+describe("change plan plugin", () => {
+  interface PlanHarness {
+    form: HTMLFormElement;
+    preview: (target: unknown) => ChangePlanLike;
+    apply: (plan: ChangePlanLike) => PlanOutcomeLike;
+    commit: (target: unknown) => PlanOutcomeLike;
+  }
+
+  function setup(): PlanHarness {
+    document.body.innerHTML = `
+      <form id="plan-form">
+        <input name="name" value="Esme" />
+        <input name="tags[0]" value="a" />
+        <input name="tags[1]" value="b" />
+      </form>
+    `;
+
+    const form = document.getElementById("plan-form") as HTMLFormElement;
+    const fn: Record<string, unknown> = {};
+    const fakeJQuery = function fakeJQuery(): StubCollection {
+      return createCollection([form], fn);
+    } as unknown as StubJQuery;
+    fakeJQuery.fn = fn;
+    fakeJQuery.extend = Object.assign;
+    installToObjectPlugin(fakeJQuery);
+
+    const collection = (): StubCollection => fakeJQuery(form);
+    return {
+      form,
+      preview: (target: unknown): ChangePlanLike => {
+        const previewFn = collection().previewChangePlan;
+        if (!previewFn) {
+          throw new Error("previewChangePlan plugin missing");
+        }
+        return previewFn.call(collection(), target);
+      },
+      apply: (plan: ChangePlanLike): PlanOutcomeLike => {
+        const applyFn = collection().applyChangePlan;
+        if (!applyFn) {
+          throw new Error("applyChangePlan plugin missing");
+        }
+        return applyFn.call(collection(), plan);
+      },
+      commit: (target: unknown): PlanOutcomeLike => {
+        const commitFn = collection().commitChangePlan;
+        if (!commitFn) {
+          throw new Error("commitChangePlan plugin missing");
+        }
+        return commitFn.call(collection(), target);
+      }
+    };
+  }
+
+  it("exposes previewChangePlan/applyChangePlan that honor baseline checks", () => {
+    const harness = setup();
+    const plan = harness.preview({ name: "Tiffany", tags: ["a", "c"] });
+    expect(plan.changes.some((item) => item.path === "name")).toBe(true);
+
+    const outcome = harness.apply(plan);
+    expect(outcome.status).toBe("applied");
+
+    const input = harness.form.querySelector('input[name="name"]') as HTMLInputElement;
+    expect(input.value).toBe("Tiffany");
+  });
+
+  it("commitChangePlan previews and applies in one call", () => {
+    const harness = setup();
+    const outcome = harness.commit({ name: "Granny", tags: ["a", "b"] });
+    expect(outcome.status).toBe("applied");
+  });
+
+  it("rejects when the form changed between preview and apply", () => {
+    const harness = setup();
+    const plan = harness.preview({ name: "Tiffany", tags: ["a", "b"] });
+    const input = harness.form.querySelector('input[name="name"]') as HTMLInputElement;
+    input.value = "Changed by user";
+
+    const outcome = harness.apply(plan);
+    expect(outcome.status).toBe("rejected");
+    if (outcome.status !== "rejected") throw new Error("expected rejection");
+    expect(outcome.reason).toBe("baseline-changed");
   });
 });

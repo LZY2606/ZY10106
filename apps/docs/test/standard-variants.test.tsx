@@ -190,3 +190,95 @@ describe("standard playground variants", () => {
     act(() => { view.root.unmount(); });
   });
 });
+
+describe("js2form change-plan preview", () => {
+  beforeEach(() => { globalThis.IS_REACT_ACT_ENVIRONMENT = true; });
+  afterEach(() => {
+    document.body.innerHTML = "";
+    vi.restoreAllMocks();
+  });
+
+  it("previews sorted changes without mutating the form, then commits once", () => {
+    const view = renderVariant(Js2FormVariant);
+    const previewButton = [...view.container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Preview change plan")
+    );
+    const commitButton = [...view.container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Commit plan")
+    );
+    const firstName = view.container.querySelector<HTMLInputElement>('input[name="person.name.first"]');
+
+    act(() => {
+      previewButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const previewState = view.getLastOutputState() as Extract<
+      ReturnType<typeof view.getLastOutputState>,
+      { parsedPayload: unknown }
+    > & { parsedPayload: { mode: string; changes: { kind: string; path: string }[] } };
+
+    expect(previewState?.status).toBe("success");
+    expect(previewState?.parsedPayload.mode).toBe("change-plan");
+    expect(firstName?.value).toBe("Esme");
+
+    const paths = previewState?.parsedPayload.changes.map((change) => `${change.kind}:${change.path}`);
+    expect(paths).toContain("set:person.name.first");
+    expect(paths).toContain("remove:person.tags");
+
+    act(() => {
+      commitButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(firstName?.value).toBe("Tiffany");
+
+    act(() => {
+      commitButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    act(() => { view.root.unmount(); });
+  });
+
+  it("lists conflicts for the conflict example and keeps the form untouched", () => {
+    const view = renderVariant(Js2FormVariant);
+    const loadButton = [...view.container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Load conflict example")
+    );
+    const previewButton = [...view.container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Preview change plan")
+    );
+    const commitButton = [...view.container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Commit plan")
+    );
+    const firstName = view.container.querySelector<HTMLInputElement>('input[name="person.name.first"]');
+
+    act(() => {
+      loadButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    act(() => {
+      previewButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const state = view.getLastOutputState() as {
+      status: string;
+      errorMessage: string | null;
+      parsedPayload: {
+        conflicts: { id: string; code: string; path: string }[];
+      };
+    };
+
+    expect(state.status).toBe("error");
+    const codes = state.parsedPayload.conflicts.map((conflict) => conflict.code);
+    expect(codes).toContain("unsafe-path");
+    expect(codes).toContain("capability");
+    expect(state.parsedPayload.conflicts[0]?.id).toMatch(/^C\d{3}$/);
+    expect(firstName?.value).toBe("Esme");
+
+    act(() => {
+      commitButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(firstName?.value).toBe("Esme");
+    act(() => { view.root.unmount(); });
+  });
+});

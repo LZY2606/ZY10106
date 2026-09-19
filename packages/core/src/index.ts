@@ -406,3 +406,37 @@ export type {
   SchemaValidator,
   ValidationOptions
 } from "./types";
+
+export {
+  createArrayIndexesMap,
+  createFieldNameCanonicalizer,
+  findBracketMatches as findCanonicalBracketMatches,
+  formatCanonicalPath,
+  normalizeName as canonicalizeFieldName,
+  parseCanonicalPath
+} from "./canonical";
+export type {
+  ArrayIndexGroupState,
+  ArrayIndexesMap as CanonicalArrayIndexesMap,
+  FieldNameCanonicalizer,
+  PathSegment as CanonicalPathSegment
+} from "./canonical";
+
+export { applyChangePlan, createChangePlan, verifyPlanBaseline } from "./plan";
+export { createObjectPlanAdapter } from "./object-adapter";
+export type {
+  BaselineDiff,
+  ChangeItem,
+  ChangeKind,
+  ChangePlan,
+  ConflictCode,
+  ConflictItem,
+  CreateChangePlanOptions,
+  PlanAdapter,
+  PlanApplyOutcome,
+  PlanControl,
+  PlanControlRef,
+  PlanFingerprint,
+  PlanTargetOptions,
+  ValueCapability
+} from "./plan-types";

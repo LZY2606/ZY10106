@@ -97,3 +97,9 @@ export interface UseForm2jsResult {
 - Re-submit attempts are ignored while a submit promise is still pending.
 - Validation and submit errors are both surfaced through `error` and `isError`.
 - `reset()` clears `isError`, `error`, and `isSuccess`.
+
+## Change Plans
+
+This package participates in the adapter-neutral change plan workflow from `@form2js/core`. Previewing a plan never mutates the underlying DOM, FormData, or React state; applying validates a baseline fingerprint and rejects the whole plan (returning per-control diffs) when any associated control changed after preview. Conflicts use stable core ids (`C001`, ...) and cover capability, shape, disabled, missing-control, and prototype-pollution cases. See the `@form2js/core` change plan documentation for the shared semantics.
+
+React hook: `useChangePlan(formRef, options?)` returns `preview(target)`, `apply(plan)`, `previewAndApply(target)`, and a `request` state object (`idle`/`preview`/`applied`/`rejected`). Calling `apply` during render throws; submit it from an event handler or effect.

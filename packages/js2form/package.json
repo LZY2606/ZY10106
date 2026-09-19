@@ -36,7 +36,8 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@form2js/core": "3.4.1"
+    "@form2js/core": "3.4.1",
+    "@form2js/dom": "3.4.1"
   },
   "scripts": {
     "build": "tsup --config tsup.config.ts",
@@ -44,5 +45,6 @@
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rimraf dist"
-  }
+  },
+  "sideEffects": false
 }

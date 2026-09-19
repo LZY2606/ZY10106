@@ -129,3 +129,9 @@ const result = formToObject(document.getElementById("profileForm"), {
 - You can merge multiple roots (`NodeList`, arrays, `HTMLCollection`) into one object.
 - If the callback returns `SKIP_NODE`, that node is excluded from extraction entirely.
 - If the callback returns `{ key | name, value }`, that value is used directly for that node.
+
+## Change Plans
+
+This package participates in the adapter-neutral change plan workflow from `@form2js/core`. Previewing a plan never mutates the underlying DOM, FormData, or React state; applying validates a baseline fingerprint and rejects the whole plan (returning per-control diffs) when any associated control changed after preview. Conflicts use stable core ids (`C001`, ...) and cover capability, shape, disabled, missing-control, and prototype-pollution cases. See the `@form2js/core` change plan documentation for the shared semantics.
+
+DOM entry points: `createDomChangePlan(root, target, options)` (alias `previewDomChangePlan`), `applyDomChangePlan(root, plan)`, and `createDomPlanCommitter(root, target, options)`.

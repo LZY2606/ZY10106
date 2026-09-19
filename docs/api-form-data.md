@@ -79,3 +79,9 @@ const result = formDataToObject(formData, { schema: PersonSchema });
 - Parsing rules are the same as `@form2js/core`.
 - Accepts either a real `FormData` object or any iterable of readonly key/value tuples.
 - Schema validation is optional and uses only a structural `{ parse(unknown) }` contract.
+
+## Change Plans
+
+This package participates in the adapter-neutral change plan workflow from `@form2js/core`. Previewing a plan never mutates the underlying DOM, FormData, or React state; applying validates a baseline fingerprint and rejects the whole plan (returning per-control diffs) when any associated control changed after preview. Conflicts use stable core ids (`C001`, ...) and cover capability, shape, disabled, missing-control, and prototype-pollution cases. See the `@form2js/core` change plan documentation for the shared semantics.
+
+FormData entry points: `createFormDataChangePlan(formData, target, options)`, `applyFormDataChangePlan(formData, plan)`, and `commitFormDataChangePlan(formData, target, options)`, plus `createFormDataPlanAdapter(formData)`. Strings and `File` values are represented losslessly; numbers, booleans and objects produce capability conflicts.

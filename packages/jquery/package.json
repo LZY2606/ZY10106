@@ -55,5 +55,6 @@
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rimraf dist"
-  }
+  },
+  "sideEffects": false
 }

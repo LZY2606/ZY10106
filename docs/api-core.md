@@ -113,3 +113,38 @@ const result = entriesToObject(
 - `EntryInput` accepts `[key, value]`, `{ key, value }`, and `{ name, value }`.
 - If `schema` is provided, parser output is passed to `schema.parse()` and schema errors are rethrown.
 - `objectToEntries` emits bracket indexes for arrays such as `emails[0]` and only serializes own enumerable properties.
+
+## Change Plans
+
+Change plans describe how a current structure would move to a target object before anything is written. Plan computation is adapter-neutral: the same core path resolution, stable ordering, and conflict numbering (`C001`, `C002`, ...) is shared by every adapter.
+
+```ts
+import { applyChangePlan, createChangePlan, createObjectPlanAdapter } from "@form2js/core";
+
+const current = { person: { name: "Esme" } };
+const adapter = createObjectPlanAdapter(current);
+const plan = createChangePlan(adapter, { person: { name: "Tiffany" } });
+
+plan.changes; // stable-sorted set/append/remove/clear items
+plan.conflicts; // capability, shape, disabled, no-control and unsafe-path items
+
+const outcome = applyChangePlan(createObjectPlanAdapter(current), plan);
+```
+
+Each change/conflict carries `path`, `oldValue`, `newValue`, a `lossless` flag, and associated controls. A plan keeps a baseline `fingerprint`; `applyChangePlan` rejects the entire plan (with `baselineDiffs`) if any associated control changed after preview. Repeating an apply call returns the first outcome without duplicate array appends.
+
+| Export | Kind | What it does |
+| --- | --- | --- |
+| `createChangePlan` | function | Computes a non-mutating change plan from an adapter and target. |
+| `applyChangePlan` | function | Validates baseline and conflicts, then applies the plan atomically. |
+| `verifyPlanBaseline` | function | Compares live controls with the plan fingerprint. |
+| `createObjectPlanAdapter` | function | In-memory adapter for plain objects and tests. |
+| `createFieldNameCanonicalizer`, `parseCanonicalPath`, `formatCanonicalPath` | helpers | Shared field-name and path canonicalization used by adapters. |
+| `ChangePlan`, `ChangeItem`, `ConflictItem`, `PlanControl`, `PlanAdapter`, `PlanApplyOutcome`, `BaselineDiff` | types | Plan model and adapter SPI. |
+
+Semantics:
+
+- Array items use `set`/`append`/`remove`/`clear`; checkbox and multi-select groups are unordered multisets, indexed scalar repeats are ordered.
+- `""` and `null` clear an existing scalar; a path missing in the target clears its bound control.
+- `__proto__`, `prototype`, and `constructor` path tokens are blocked with an `unsafe-path` conflict unless `allowUnsafePathSegments: true`.
+- Adapters that cannot store a value (for example a number into a checkbox group, or a string into a file input) report a `capability` conflict instead of coercing.

@@ -82,3 +82,9 @@ const result = $(".profile-form").toObject({ mode: "all" });
 - `installToObjectPlugin` is idempotent; it does not overwrite an existing `$.fn.toObject`.
 - `mode: "all"` returns an array of objects, one per matched element.
 - `mode: "combine"` passes all matched root nodes together into the DOM parser.
+
+## Change Plans
+
+This package participates in the adapter-neutral change plan workflow from `@form2js/core`. Previewing a plan never mutates the underlying DOM, FormData, or React state; applying validates a baseline fingerprint and rejects the whole plan (returning per-control diffs) when any associated control changed after preview. Conflicts use stable core ids (`C001`, ...) and cover capability, shape, disabled, missing-control, and prototype-pollution cases. See the `@form2js/core` change plan documentation for the shared semantics.
+
+jQuery plugin methods: `$(form).previewChangePlan(target, options?)`, `$(form).applyChangePlan(plan)`, and `$(form).commitChangePlan(target, options?)`. These wrappers run the same baseline verification as the DOM entry points and cannot bypass it.

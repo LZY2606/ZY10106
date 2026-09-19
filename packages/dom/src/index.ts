@@ -375,3 +375,25 @@ export function form2js(
 
   return formToObject(rootNode, normalizedOptions);
 }
+
+export {
+  applyDomChangePlan,
+  createDomChangePlan,
+  createDomPlanCommitter,
+  previewDomChangePlan
+} from "./plan";
+export type { DomPlanOptions, DomPlanRootNode } from "./plan";
+
+export type {
+  BaselineDiff,
+  ChangeItem,
+  ChangeKind,
+  ChangePlan,
+  ConflictCode,
+  ConflictItem,
+  PlanAdapter,
+  PlanApplyOutcome,
+  PlanControl,
+  PlanControlRef,
+  ValueCapability
+} from "@form2js/core";

@@ -50,3 +50,11 @@ export type {
   SchemaValidator,
   ValidationOptions
 } from "@form2js/core";
+
+export {
+  applyFormDataChangePlan,
+  commitFormDataChangePlan,
+  createFormDataChangePlan,
+  createFormDataPlanAdapter
+} from "./plan";
+export type { FormDataPlanOptions } from "./plan";

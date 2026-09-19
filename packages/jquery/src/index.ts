@@ -1,4 +1,13 @@
-import { form2js, type FormToObjectNodeCallback, type RootNodeInput } from "@form2js/dom";
+import {
+  applyDomChangePlan,
+  createDomChangePlan,
+  form2js,
+  type ChangePlan,
+  type DomPlanOptions,
+  type FormToObjectNodeCallback,
+  type PlanApplyOutcome,
+  type RootNodeInput
+} from "@form2js/dom";
 
 export type ToObjectMode = "first" | "all" | "combine";
 
@@ -71,6 +80,30 @@ export function installToObjectPlugin($: JQueryLike): void {
   if (typeof fnObject.toObject === "function") {
     return;
   }
+
+  fnObject.previewChangePlan = function previewChangePlan(
+    this: JQueryCollectionLike,
+    target: unknown,
+    options?: DomPlanOptions
+  ): ChangePlan {
+    return createDomChangePlan(this.get(0) as RootNodeInput, target, options);
+  };
+
+  fnObject.applyChangePlan = function applyChangePlanPlugin(
+    this: JQueryCollectionLike,
+    plan: ChangePlan
+  ): PlanApplyOutcome {
+    return applyDomChangePlan(this.get(0) as RootNodeInput, plan);
+  };
+
+  fnObject.commitChangePlan = function commitChangePlan(
+    this: JQueryCollectionLike,
+    target: unknown,
+    options?: DomPlanOptions
+  ): PlanApplyOutcome {
+    const plan = createDomChangePlan(this.get(0) as RootNodeInput, target, options);
+    return applyDomChangePlan(this.get(0) as RootNodeInput, plan);
+  };
 
   fnObject.toObject = function toObject(this: JQueryCollectionLike, options?: ToObjectOptions): unknown {
     const settings = applySettings(options);
