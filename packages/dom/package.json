@@ -1,0 +1,53 @@
+{
+  "name": "@form2js/dom",
+  "version": "3.4.1",
+  "description": "DOM extraction adapters for form2js.",
+  "license": "MIT",
+  "repository": "https://github.com/maxatwork/form2js",
+  "homepage": "https://maxatwork.github.io/form2js/",
+  "bugs": {
+    "url": "https://github.com/maxatwork/form2js/issues"
+  },
+  "keywords": [
+    "form",
+    "forms",
+    "serialization",
+    "deserialization",
+    "form-data",
+    "json",
+    "dom",
+    "form-to-object",
+    "browser"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "browser": "./dist/standalone.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./standalone": {
+      "default": "./dist/standalone.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@form2js/core": "3.4.1"
+  },
+  "scripts": {
+    "build": "tsup --config tsup.config.ts",
+    "test": "vitest run",
+    "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rimraf dist"
+  }
+}

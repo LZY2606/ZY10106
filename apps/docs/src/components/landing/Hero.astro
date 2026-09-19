@@ -1,0 +1,52 @@
+---
+// apps/docs/src/components/landing/Hero.astro
+import { apiDocsPath } from "../../lib/site-routes";
+const basePath = import.meta.env.BASE_URL;
+---
+
+<section class="hero">
+  <p class="hero__eyebrow">form serialization library</p>
+  <h1 class="hero__title">Turn forms<br />into objects.</h1>
+  <p class="hero__desc">
+    Parse browser forms into structured JavaScript objects. Six adapters —
+    React hooks, vanilla DOM, jQuery, FormData, and more. One coherent API.
+  </p>
+  <div class="hero__actions">
+    <span class="hero__install">
+      <span class="hero__install-prefix">$</span>
+      <span id="hero-install-pkg">npm install @form2js/react react</span>
+    </span>
+    <a class="btn-primary" href="#playground">Try the playground ↓</a>
+    <a class="btn-ghost" href={apiDocsPath(basePath)}>API Docs →</a>
+  </div>
+</section>
+
+<script>
+  window.addEventListener("form2js:variant-change", (event) => {
+    if (!(event instanceof CustomEvent)) return;
+
+    const detail = event.detail;
+    const variantId = typeof detail?.variantId === "string" ? detail.variantId : null;
+    const firstPackage =
+      Array.isArray(detail?.packages) && typeof detail.packages[0] === "string"
+        ? detail.packages[0]
+        : null;
+    const el = document.getElementById("hero-install-pkg");
+
+    if (!el) return;
+
+    if (variantId === "react") {
+      el.textContent = "npm install @form2js/react react";
+      return;
+    }
+
+    if (variantId === "jquery") {
+      el.textContent = "npm install @form2js/jquery jquery";
+      return;
+    }
+
+    if (firstPackage) {
+      el.textContent = `npm install ${firstPackage}`;
+    }
+  });
+</script>

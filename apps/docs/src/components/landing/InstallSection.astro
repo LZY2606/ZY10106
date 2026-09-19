@@ -1,0 +1,118 @@
+---
+// apps/docs/src/components/landing/InstallSection.astro
+---
+
+<section class="section content-wrap" id="install">
+  <p class="section-eyebrow">Use in your project</p>
+  <div class="install-grid">
+    <div>
+      <h2 class="section-title">Install</h2>
+      <p class="section-desc">
+        Pick the adapter for your stack. All packages share the same
+        path-syntax so switching is painless.
+      </p>
+    </div>
+    <div>
+      <span id="install-cmd" class="install-cmd">npm install @form2js/react react</span>
+      <pre id="install-snippet" class="code-block">{`import { useForm2js } from '@form2js/react'
+
+const { onSubmit, isSubmitting } = useForm2js(handler)
+
+// nested names just work:
+// <input name="user.email" />
+// → { user: { email: '…' } }`}</pre>
+      <p id="install-alt-label" class="section-desc" hidden>Browser global via &lt;script&gt;</p>
+      <pre id="install-alt-snippet" class="code-block" hidden></pre>
+    </div>
+  </div>
+</section>
+
+<script>
+  window.addEventListener("form2js:variant-change", (event) => {
+    if (!(event instanceof CustomEvent)) return;
+
+    const detail = event.detail;
+    const cmdEl = document.getElementById("install-cmd");
+    const snippetEl = document.getElementById("install-snippet");
+    const altLabelEl = document.getElementById("install-alt-label");
+    const altSnippetEl = document.getElementById("install-alt-snippet");
+    const variantId = typeof detail?.variantId === "string" ? detail.variantId : null;
+
+    let install = null;
+
+    switch (variantId) {
+      case "react":
+        install = {
+          command: "npm install @form2js/react react",
+          snippet: `import { useForm2js } from '@form2js/react'
+
+const { onSubmit, isSubmitting } = useForm2js(handler)`,
+        };
+        break;
+      case "form":
+        install = {
+          command: "npm install @form2js/dom",
+          snippet: `import { formToObject } from '@form2js/dom'
+
+const data = formToObject(formElement)`,
+          altLabel: "Browser global via <script>",
+          altSnippet: `<script src="https://unpkg.com/@form2js/dom/dist/standalone.global.js"><\/script>
+<script>
+  const data = formToObject(formElement)
+<\/script>`,
+        };
+        break;
+      case "jquery":
+        install = {
+          command: "npm install @form2js/jquery jquery",
+          snippet: `import { installToObjectPlugin } from '@form2js/jquery'
+
+installToObjectPlugin($)
+const data = $('form').toObject()`,
+          altLabel: "Browser global via <script>",
+          altSnippet: `<script src="https://code.jquery.com/jquery-3.7.1.min.js"><\/script>
+<script src="https://unpkg.com/@form2js/jquery/dist/standalone.global.js"><\/script>
+<script>
+  const data = $('form').toObject()
+<\/script>`,
+        };
+        break;
+      case "js2form":
+        install = {
+          command: "npm install @form2js/js2form",
+          snippet: `import { objectToForm } from '@form2js/js2form'
+
+objectToForm(formElement, { user: { name: 'Alice' } })`,
+        };
+        break;
+      case "core":
+        install = {
+          command: "npm install @form2js/core",
+          snippet: `import { entriesToObject } from '@form2js/core'
+
+const data = entriesToObject([
+  { key: 'user.name', value: 'Alice' }
+])`,
+        };
+        break;
+      case "form-data":
+        install = {
+          command: "npm install @form2js/form-data",
+          snippet: `import { formDataToObject } from '@form2js/form-data'
+
+const data = formDataToObject(new FormData(formElement))`,
+        };
+        break;
+      default:
+        install = null;
+    }
+
+    if (cmdEl && install?.command) cmdEl.textContent = install.command;
+    if (snippetEl && install?.snippet) snippetEl.textContent = install.snippet;
+
+    if (altLabelEl) altLabelEl.hidden = !install?.altLabel;
+    if (altSnippetEl) altSnippetEl.hidden = !install?.altSnippet;
+    if (altLabelEl && install?.altLabel) altLabelEl.textContent = install.altLabel;
+    if (altSnippetEl) altSnippetEl.textContent = install?.altSnippet ?? "";
+  });
+</script>
